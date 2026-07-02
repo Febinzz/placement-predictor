@@ -1,1 +1,7 @@
-# placement-predictor
+Flask
+gunicorn
+tensorflow
+numpy
+pandas
+scikit-learn
+joblib
