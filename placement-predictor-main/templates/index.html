@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Placement Predictor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg-a: #070b2d;
+            --bg-b: #3b0a6f;
+            --bg-c: #0e5ef7;
+            --primary: #6366f1;
+            --secondary: #8b5cf6;
+            --accent: #06b6d4;
+            --pink: #ec4899;
+            --text: #ffffff;
+            --muted: rgba(255, 255, 255, 0.72);
+            --glass: rgba(255, 255, 255, 0.08);
+            --border: rgba(255, 255, 255, 0.16);
+            --shadow: 0 30px 90px rgba(3, 6, 25, 0.5);
+            --field-bg: rgba(255, 255, 255, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            min-height: 100vh;
+            overflow-x: hidden;
+            color: var(--text);
+            background:
+                radial-gradient(circle at 18% 18%, rgba(99, 102, 241, 0.28), transparent 18%),
+                radial-gradient(circle at 82% 18%, rgba(6, 182, 212, 0.22), transparent 16%),
+                radial-gradient(circle at 72% 78%, rgba(236, 72, 153, 0.2), transparent 20%),
+                linear-gradient(140deg, var(--bg-a) 0%, var(--bg-b) 52%, var(--bg-c) 100%);
+        }
+
+        body::before,
+        body::after {
+            content: '';
+            position: fixed;
+            inset: auto;
+            pointer-events: none;
+            z-index: 0;
+            border-radius: 50%;
+            filter: blur(26px);
+            opacity: 0.55;
+            animation: drift 16s ease-in-out infinite alternate;
+        }
+
+        body::before {
+            width: 500px;
+            height: 500px;
+            left: -180px;
+            top: -120px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.8) 0%, rgba(99, 102, 241, 0) 68%);
+        }
+
+        body::after {
+            width: 560px;
+            height: 560px;
+            right: -220px;
+            bottom: -220px;
+            background: radial-gradient(circle, rgba(6, 182, 212, 0.78) 0%, rgba(6, 182, 212, 0) 68%);
+            animation-delay: -7s;
+        }
+
+        .stars,
+        .mesh,
+        .waves,
+        .particles {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .stars {
+            background-image:
+                radial-gradient(circle, rgba(255, 255, 255, 0.82) 0 1px, transparent 1.4px),
+                radial-gradient(circle, rgba(255, 255, 255, 0.55) 0 1px, transparent 1.4px);
+            background-size: 120px 120px, 170px 170px;
+            background-position: 0 0, 40px 60px;
+            opacity: 0.35;
+            animation: starDrift 120s linear infinite;
+        }
+
+        .mesh {
+            background:
+                radial-gradient(circle at 16% 18%, rgba(255, 255, 255, 0.08), transparent 18%),
+                radial-gradient(circle at 84% 20%, rgba(255, 255, 255, 0.05), transparent 18%),
+                linear-gradient(transparent 0, transparent 96%, rgba(255, 255, 255, 0.07) 96%, rgba(255, 255, 255, 0.07) 100%),
+                linear-gradient(90deg, transparent 0, transparent 96%, rgba(255, 255, 255, 0.07) 96%, rgba(255, 255, 255, 0.07) 100%);
+            background-size: 100% 100%, 100% 100%, 72px 72px, 72px 72px;
+            opacity: 0.16;
+            mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.96), rgba(0, 0, 0, 0.1));
+        }
+
+        .waves {
+            opacity: 0.14;
+            background:
+                linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.08) 50%, transparent 60%),
+                linear-gradient(115deg, transparent 60%, rgba(255, 255, 255, 0.06) 70%, transparent 80%);
+            background-size: 360px 360px, 280px 280px;
+            animation: waveShift 24s linear infinite;
+            transform: skewY(-8deg);
+        }
+
+        .particles span {
+            position: absolute;
+            display: block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.7);
+            box-shadow: 0 0 18px rgba(255, 255, 255, 0.75);
+            animation: floatUp linear infinite;
+        }
+
+        .particles span:nth-child(1) { left: 8%; bottom: -10px; animation-duration: 16s; }
+        .particles span:nth-child(2) { left: 16%; bottom: -16px; animation-duration: 18s; animation-delay: 2s; }
+        .particles span:nth-child(3) { left: 23%; bottom: -12px; animation-duration: 15s; animation-delay: 5s; }
+        .particles span:nth-child(4) { left: 34%; bottom: -20px; animation-duration: 19s; animation-delay: 1s; }
+        .particles span:nth-child(5) { left: 43%; bottom: -14px; animation-duration: 20s; animation-delay: 3s; }
+        .particles span:nth-child(6) { left: 55%; bottom: -18px; animation-duration: 17s; animation-delay: 4s; }
+        .particles span:nth-child(7) { left: 66%; bottom: -10px; animation-duration: 14s; animation-delay: 6s; }
+        .particles span:nth-child(8) { left: 76%; bottom: -18px; animation-duration: 21s; animation-delay: 8s; }
+        .particles span:nth-child(9) { left: 86%; bottom: -12px; animation-duration: 16s; animation-delay: 5s; }
+        .particles span:nth-child(10) { left: 93%; bottom: -14px; animation-duration: 18s; animation-delay: 7s; }
+
+        .page {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            padding: 20px;
+            display: grid;
+            place-items: center;
+        }
+
+        .card-shell {
+            width: min(100%, 780px);
+            position: relative;
+        }
+
+        .card-shell::before {
+            content: '';
+            position: absolute;
+            inset: -12px;
+            border-radius: 30px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.01));
+            filter: blur(2px);
+            pointer-events: none;
+        }
+
+        .card {
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: var(--shadow);
+            padding: 18px 18px 20px;
+            animation: fadeInUp 0.9s ease both;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.03));
+            pointer-events: none;
+        }
+
+        .card-top {
+            display: grid;
+            place-items: center;
+            gap: 10px;
+            position: relative;
+            z-index: 1;
+            margin-bottom: 12px;
+        }
+
+       .top-badge {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.12));
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.45), 0 0 34px rgba(99, 102, 241, 0.32);
+    color: #ffffff;
+    font-size: 1.8rem;   /* Increased icon size */
+}
+        .title {
+            font-size: clamp(2.2rem, 3.6vw, 3.2rem);
+            line-height: 1.02;
+            letter-spacing: -0.06em;
+            font-weight: 800;
+            text-align: center;
+        }
+
+        .subtitle {
+            font-size: 0.9rem;
+            line-height: 1.5;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.82);
+        }
+
+        .form {
+            position: relative;
+            z-index: 1;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .field{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+}
+.field-header{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.field-header label{
+    color:#fff;
+    font-size:0.9rem;
+    font-weight:700;
+}
+
+        .field input,
+        .field select {
+            width: 100%;
+            appearance: none;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            background: rgba(255, 255, 255, 0.08);
+            color: #eaf2ff;
+            outline: none;
+            padding:16px 18px;
+            font-size: 0.92rem;
+            font-weight: 600;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 20px rgba(0, 0, 0, 0.12);
+            transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background 180ms ease;
+        }
+        .field select option{
+    background:#1B1F63;   /* dark blue */
+    color:#ffffff;
+}
+
+        .field input::placeholder {
+            color: #bfc8ff;;
+        }
+
+        .field select {
+            padding-right: 42px;
+            cursor: pointer;
+            background-image:
+                linear-gradient(45deg, transparent 50%, rgba(255, 255, 255, 0.8) 50%),
+                linear-gradient(135deg, rgba(255, 255, 255, 0.8) 50%, transparent 50%);
+            background-position:
+                calc(100% - 18px) calc(50% - 2px),
+                calc(100% - 12px) calc(50% - 2px);
+            background-size: 5px 5px, 5px 5px;
+            background-repeat: no-repeat;
+        }
+.field-icon{
+    width:34px;
+    height:34px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    border-radius:10px;
+
+    background:rgba(255,255,255,0.12);
+    border:1px solid rgba(255,255,255,0.2);
+
+    color:white;
+
+    box-shadow:0 0 12px rgba(99,102,241,.3);
+}
+
+        
+       
+
+        .field input:hover,
+        .field select:hover {
+            transform: translateY(-1px);
+            border-color: rgba(99, 102, 241, 0.56);
+        }
+
+        .field input:focus,
+        .field select:focus {
+            border-color: rgba(6, 182, 212, 0.9);
+            box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.16), 0 0 0 1px rgba(139, 92, 246, 0.2) inset;
+        }
+
+       
+
+        .floating:focus-within .field-icon {
+            color: #93c5fd;
+        }
+
+        .floating.has-value .field-icon {
+            color: #93c5fd;
+        }
+
+        .button-wrap{
+    margin-top:20px;
+    width:100%;
+
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+
+    gap:12px;
+}
+
+        .action-button {
+            position: relative;
+            width: 250px;
+            border: none;
+            border-radius: 14px;
+            padding: 14px 18px;
+            color: white;
+            font-size: 0.98rem;
+            font-weight: 800;
+            cursor: pointer;
+            overflow: hidden;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent));
+            background-size: 200% 200%;
+            box-shadow: 0 16px 36px rgba(99, 102, 241, 0.38), 0 0 0 1px rgba(255, 255, 255, 0.12) inset;
+            transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease, background-position 350ms ease;
+        }
+
+        .action-button::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, transparent 28%, rgba(255, 255, 255, 0.42) 50%, transparent 72%);
+            transform: translateX(-130%);
+            transition: transform 800ms ease;
+        }
+
+        .action-button:hover {
+            transform: translateY(-2px);
+            filter: saturate(1.08);
+            box-shadow: 0 20px 44px rgba(99, 102, 241, 0.5), 0 0 28px rgba(6, 182, 212, 0.18);
+            background-position: 100% 0;
+        }
+
+        .action-button:hover::before {
+            transform: translateX(130%);
+        }
+
+        .security {
+            font-size: 0.8rem;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .footer-note {
+            width:100%;
+            text-align: center;
+            font-size: 0.82rem;
+            color: rgba(255, 255, 255, 0.84);
+        }
+
+        .footer-note strong {
+            font-weight: 800;
+            color: #fff;
+        }
+
+        .left-decor {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .left-decor::before,
+        .left-decor::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(12px);
+        }
+
+        .left-decor::before {
+            width: 150px;
+            height: 150px;
+            right: -30px;
+            top: -24px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0));
+        }
+
+        .left-decor::after {
+            width: 180px;
+            height: 180px;
+            left: -40px;
+            bottom: 16px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.18), rgba(139, 92, 246, 0));
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(18px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes drift {
+            from { transform: translate3d(0, 0, 0) scale(1); }
+            to { transform: translate3d(30px, 24px, 0) scale(1.08); }
+        }
+
+        @keyframes starDrift {
+            from { transform: translate3d(0, 0, 0); }
+            to { transform: translate3d(-80px, 50px, 0); }
+        }
+
+        @keyframes waveShift {
+            from { background-position: 0 0, 0 0; }
+            to { background-position: 360px 360px, -280px 280px; }
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(0.7); opacity: 0; }
+            12% { opacity: 0.65; }
+            100% { transform: translateY(-115vh) scale(1.2); opacity: 0; }
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+
+        @keyframes pulseGlow {
+            from { box-shadow: 0 0 20px rgba(168, 85, 247, 0.35), 0 0 34px rgba(99, 102, 241, 0.24); }
+            to { box-shadow: 0 0 30px rgba(168, 85, 247, 0.6), 0 0 40px rgba(99, 102, 241, 0.32); }
+        }
+
+        @media (max-width: 860px) {
+            .page {
+                padding: 12px;
+            }
+
+            .card {
+                border-radius: 22px;
+                padding: 16px 14px 18px;
+            }
+
+            .title {
+                font-size: clamp(2rem, 8vw, 2.8rem);
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .action-button {
+                width: 100%;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+
+        body::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        body::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        body::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, var(--primary), var(--secondary));
+            border-radius: 999px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="stars" aria-hidden="true"></div>
+    <div class="mesh" aria-hidden="true"></div>
+    <div class="waves" aria-hidden="true"></div>
+    <div class="particles" aria-hidden="true">
+        <span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span>
+    </div>
+
+    <main class="page">
+        <section class="card-shell" aria-label="Placement predictor landing page">
+            <div class="card">
+                <div class="left-decor" aria-hidden="true"></div>
+
+                <div class="card-top">
+                    <div class="top-badge"><i class="fa-solid fa-graduation-cap"></i></div>
+                    <h1 class="title">Placement Predictor</h1>
+                    <div class="subtitle">AI Powered Placement Prediction</div>
+                    <p class="subtitle">Enter your academic profile and training details to get a polished machine learning driven prediction instantly.</p>
+                </div>
+
+                <form class="form" action="/predict" method="POST" autocomplete="off">
+                    <div class="form-grid">
+                       <div class="field">
+
+    <div class="field-header">
+        <span class="field-icon">
+            <i class="fa-solid fa-star"></i>
+        </span>
+
+        <label for="cgpa">CGPA (0 - 10)</label>
+    </div>
+
+    <input
+        id="cgpa"
+        type="number"
+        step="0.1"
+        min="0"
+        max="10"
+        name="cgpa"
+        placeholder="e.g. 8.4"
+        required>
+
+</div>
+
+                        <div class="field">
+
+    <div class="field-header">
+        <span class="field-icon">
+            <i class="fa-solid fa-briefcase"></i>
+        </span>
+        <label for="internships">Internships</label>
+    </div>
+
+    <input id="internships"
+           type="number"
+           min="0"
+           max="5"
+           name="internships"
+           placeholder="e.g. 1"
+           required>
+
+</div>
+
+<div class="field">
+
+    <div class="field-header">
+        <span class="field-icon">
+            <i class="fa-solid fa-code"></i>
+        </span>
+        <label for="projects">Projects</label>
+    </div>
+
+    <input id="projects"
+           type="number"
+           min="0"
+           max="5"
+           name="projects"
+           placeholder="e.g. 5"
+           required>
+
+</div>
+
+<div class="field">
+
+    <div class="field-header">
+        <span class="field-icon">
+            <i class="fa-solid fa-award"></i>
+        </span>
+        <label for="workshops">Workshops / Certifications</label>
+    </div>
+
+    <input id="workshops"
+           type="number"
+           min="0"
+           max="5"
+           name="workshops"
+           placeholder="e.g. 5"
+           required>
+
+</div>
+
+<div class="field">
+
+    <div class="field-header">
+        <span class="field-icon">
+            <i class="fa-solid fa-bullseye"></i>
+        </span>
+        <label for="aptitude">Aptitude Test Score (0 - 100)</label>
+    </div>
+
+    <input id="aptitude"
+           type="number"
+           min="0"
+           max="100"
+           name="aptitude"
+           placeholder="e.g. 60"
+           required>
+
+</div>
+
+<div class="field">
+
+    <div class="field-header">
+        <span class="field-icon">
+            <i class="fa-solid fa-users"></i>
+        </span>
+        <label for="softskills">Soft Skills Rating (0 - 10)</label>
+    </div>
+
+    <input id="softskills"
+           type="number"
+           step="0.1"
+           min="0"
+           max="10"
+           name="softskills"
+           placeholder="e.g. 5"
+           required>
+
+</div>
+
+<div class="field">
+
+    <div class="field-header">
+        <span class="field-icon">
+            <i class="fa-solid fa-trophy"></i>
+        </span>
+        <label for="activities">Extracurricular Activities</label>
+    </div>
+
+    <select id="activities" name="activities" required>
+        <option value=""  selected>Select</option>
+        <option value="1">Yes</option>
+        <option value="0">No</option>
+    </select>
+
+</div>
+
+<div class="field">
+
+    <div class="field-header">
+        <span class="field-icon">
+            <i class="fa-solid fa-rocket"></i>
+        </span>
+        <label for="training">Placement Training</label>
+    </div>
+
+    <select id="training" name="training" required>
+        <option value=""  selected>Select</option>
+        <option value="1">Yes</option>
+        <option value="0">No</option>
+    </select>
+
+</div>
+
+<div class="field">
+
+    <div class="field-header">
+        <span class="field-icon">
+            <i class="fa-solid fa-book"></i>
+        </span>
+        <label for="ssc">SSC Marks (0 - 100)</label>
+    </div>
+
+    <input id="ssc"
+           type="number"
+           min="0"
+           max="100"
+           name="ssc"
+           placeholder="e.g. 97"
+           required>
+
+</div>
+
+<div class="field">
+
+    <div class="field-header">
+        <span class="field-icon">
+            <i class="fa-solid fa-graduation-cap"></i>
+        </span>
+        <label for="hsc">HSC Marks (0 - 100)</label>
+    </div>
+
+    <input id="hsc"
+           type="number"
+           min="0"
+           max="100"
+           name="hsc"
+           placeholder="e.g. 96"
+           required>
+
+</div>
+</div>
+                    <div class="button-wrap">
+                        <button type="submit" class="action-button" id="predictButton"><i class="fa-solid fa-rocket"></i> Predict Placement</button>
+                        <div class="security"><i class="fa-solid fa-lock"></i> Your information is secure and used only for prediction.</div>
+                        <div class="footer-note">&hearts; Built with <strong>Flask &amp; Machine Learning</strong></div>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const fields = document.querySelectorAll('.floating input, .floating select');
+
+        const syncFieldState = (field) => {
+            const wrapper = field.closest('.floating');
+            if (!wrapper) {
+                return;
+            }
+
+            wrapper.classList.toggle('has-value', field.value !== '');
+        };
+
+        fields.forEach((field) => {
+            syncFieldState(field);
+            field.addEventListener('input', () => syncFieldState(field));
+            field.addEventListener('change', () => syncFieldState(field));
+            field.addEventListener('blur', () => syncFieldState(field));
+        });
+
+        const button = document.getElementById('predictButton');
+
+        if (button) {
+            button.addEventListener('pointermove', (event) => {
+                const rect = button.getBoundingClientRect();
+                const x = ((event.clientX - rect.left) / rect.width) * 100;
+                const y = ((event.clientY - rect.top) / rect.height) * 100;
+                button.style.setProperty('--x', `${x}%`);
+                button.style.setProperty('--y', `${y}%`);
+            });
+        }
+    </script>
+</body>
+
+</html>
